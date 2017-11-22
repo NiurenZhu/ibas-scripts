@@ -1,0 +1,7 @@
+# Package Files #
+docker/b1/packages
+compiling/maven
+
+# temp files
+*~
+docker/nginx/html
