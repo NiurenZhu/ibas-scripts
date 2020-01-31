@@ -5,3 +5,6 @@ compiling/maven
 # temp files
 *~
 docker/nginx/html
+
+# mac files
+.DS_Store
