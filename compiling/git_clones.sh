@@ -35,8 +35,14 @@ while read line; do
     git pull --depth 1
   else
     # 仅获取最新版本
-    git clone --depth 1 ${GIT_ROOT_URL}/${folder##* }.git ${others}
+    folder=${folder##* }
+    git clone --depth 1 ${GIT_ROOT_URL}/${folder}.git ${others}
+    echo ${folder} >>${WORK_FOLDER}/~compile_order.txt
   fi
   cd ${WORK_FOLDER}
 done <${WORK_FOLDER}/compile_order.txt | sed 's/\r//g'
 cd ${WORK_FOLDER}
+# 使用新的顺序文件
+if [ -e ~compile_order.txt ]; then
+  mv -f ~compile_order.txt compile_order.txt
+fi
