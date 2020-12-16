@@ -25,6 +25,32 @@ fi
 if [ ! -e ${WORK_FOLDER}/${WEBSITE} ]; then
     mkdir -p ${WORK_FOLDER}/${WEBSITE}
 fi
+# 启动容器控制台
+CONTAINER_PORTAINER=portainer
+if [ ! -e ${WORK_FOLDER}/portainer ]; then
+    read -p "----创建容器管理平台（Portainer）？（n or [y]）: " PORTAINER
+    if [ "${PORTAINER}" = "" ]; then
+        PORTAINER=y
+    fi
+    if [ "${PORTAINER}" = "y" ]; then
+        mkdir -p ${WORK_FOLDER}/portainer
+        # 获取端口号
+        read -p "----管理平台端口（9000）: " PORTAINER_PORT
+        if [ "${NGINX_PORT}" = "" ]; then
+            PORTAINER_PORT=9000
+        fi
+        docker run -d \
+            --name=${CONTAINER_PORTAINER} \
+            --restart=always \
+            -m 256m \
+            -p ${PORTAINER_PORT}:9000 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${WORK_FOLDER}/portainer:/data \
+            --privileged=true \
+            portainer/portainer-ce
+    fi
+    echo --容器管理平台：${CONTAINER_PORTAINER}
+fi
 # 获取数据库容器
 read -p "----请输入数据库容器（ibas-db-mysql）: " CONTAINER_DATABASE
 if [ "${CONTAINER_DATABASE}" = "" ]; then
@@ -163,6 +189,15 @@ location /${WEBSITE}/ {
 }
 EOF
 fi
+# 容器管理平台索引
+if [ -e ${WORK_FOLDER}/portainer ]; then
+    PORTAINER_PORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "9000/tcp") 0).HostPort}}' portainer || echo "")
+    LINK_PORTAINER="<p><a href=":${PORTAINER_PORT}" target="_blank">Portainer</a></p>"
+fi
+# 如果未获取到端口则不生成索引
+if [ "${PORTAINER_PORT}" = "" ]; then
+    LINK_PORTAINER=
+fi
 # 重新创建根网站容器
 LINK_TOMCATS=
 LINK_APPS=
@@ -186,8 +221,20 @@ cat >${WORK_FOLDER}/root/index.html <<EOF
 </head>
 <body>
     <h1>Welcome to ibas apps!</h1>
+    ${LINK_PORTAINER}
     ${LINK_APPS}
 </body>
+<script>
+    let as = document.body.getElementsByTagName("a");
+    for (let index = 0; index < as.length; index++) {
+        let element = as[index];
+        let href = element.getAttribute("href");
+        if (typeof href === "string" && href.startsWith(":")) {
+            href = window.location.origin.replace(window.location.host, window.location.hostname + href);
+        }
+        element.setAttribute("href", href);
+    }
+</script>
 </html>
 EOF
 docker rm -vf ${CONTAINER_NGINX} >/dev/null
