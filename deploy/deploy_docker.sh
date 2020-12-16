@@ -8,6 +8,8 @@ echo '    1. 参数1，文件夹为网站目录。并构建运行容器。      
 echo '    2. 运行前，自主把应用war包，拷贝至网站目录下的ibas_packages下。                 '
 echo '    3. 应用配置及数据文件，在网站目录的ibas目录。                                  '
 echo '    4. 脚本会自动在root/conf.d，创建网站的nginx配置。                            '
+echo '    5. 若开启容器管理平台，可以通过索引页链接打开。                                '
+echo '    6. 若开启Tomcat远程诊断，可以用jconsole连接，注意端口冲突。                    '
 echo '****************************************************************************'
 # 设置参数变量
 WORK_FOLDER=$PWD
@@ -70,6 +72,28 @@ if [ "${RESET_TOMCAT}" = "" ]; then
     RESET_TOMCAT=y
 fi
 if [ "${RESET_TOMCAT}" = "y" ]; then
+    read -p "----开启Tomcat远程诊断？（[n] or y）: " JMX_TOMCAT
+    if [ "${JMX_TOMCAT}" = "y" ]; then
+        read -p "----远程诊断端口？（8900）: " JMX_PORT
+        if [ "${JMX_PORT}" = "" ]; then
+            JMX_PORT=8900
+        fi
+        # 检查环境变量文件
+        if [ -e ${WORK_FOLDER}/${WEBSITE}/tomcat_setenv.sh ]; then
+            rm -f ${WORK_FOLDER}/${WEBSITE}/tomcat_setenv.sh
+        fi
+        cat >${WORK_FOLDER}/${WEBSITE}/tomcat_setenv.sh <<EOF
+# Tomcat Environment Variables
+JAVA_OPTS="\$JAVA_OPTS -Dcom.sun.management.jmxremote"
+JAVA_OPTS="\$JAVA_OPTS -Dcom.sun.management.jmxremote.authenticate=false"
+JAVA_OPTS="\$JAVA_OPTS -Dcom.sun.management.jmxremote.ssl=false"
+JAVA_OPTS="\$JAVA_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT"
+JAVA_OPTS="\$JAVA_OPTS -Dcom.sun.management.jmxremote.rmi.port=$JMX_PORT"
+JAVA_OPTS="\$JAVA_OPTS -Djava.rmi.server.hostname=$(hostname)"
+EOF
+        DOCKER_JMX="${DOCKER_JMX} -v ${WORK_FOLDER}/${WEBSITE}/tomcat_setenv.sh:/usr/local/tomcat/bin/setenv.sh"
+        DOCKER_JMX="${DOCKER_JMX} -p ${JMX_PORT}:${JMX_PORT}"
+    fi
     # 删除重建
     read -p "----网站容器内存？（1024m）: " MEM_TOMCAT
     if [ "${MEM_TOMCAT}" = "" ]; then
@@ -86,6 +110,7 @@ if [ "${RESET_TOMCAT}" = "y" ]; then
         -e TZ="Asia/Shanghai" \
         -e JAVA_OPTS="-Xmx${MEM_JAVA}m" \
         --privileged=true \
+        ${DOCKER_JMX} \
         colorcoding/tomcat:ibas-alpine
 else
     # 启动更新，需要做好目录映射
