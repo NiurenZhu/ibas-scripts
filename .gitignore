@@ -8,3 +8,7 @@ docker/nginx/html
 
 # mac files
 .DS_Store
+
+*.sql
+*.gz
+*.bak

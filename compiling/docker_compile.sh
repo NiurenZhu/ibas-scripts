@@ -9,12 +9,11 @@ echo '    2. 参数1，使用的镜像，默认colorcoding/compiling:ibas-alpine
 echo '****************************************************************************'
 # 设置参数变量
 # 工作目录
-WORK_FOLDER=`pwd`
+WORK_FOLDER=$(pwd)
 # 容器镜像
 DOCKER_IMAGE=$1
 # 设置默认镜像
-if [ "${DOCKER_IMAGE}" = "" ]
-then
+if [ "${DOCKER_IMAGE}" = "" ]; then
   DOCKER_IMAGE=colorcoding/compiling:ibas-alpine
 fi
 # 容器镜像
@@ -23,19 +22,19 @@ DOCKER_DNS=8.8.8.8
 echo --工作目录：${WORK_FOLDER}
 echo --使用镜像：${DOCKER_IMAGE}
 # 启动容器
-DOCKER_ID=`
-docker run -id \
-  --add-host github.global.ssl.fastly.net:151.101.1.194 \
-  --add-host gist.github.com:13.250.177.223 \
-  --add-host github.com:13.250.177.223 \
-  --add-host www.github.com:13.229.188.59 \
-  --add-host raw.githubusercontent.com:151.101.56.133 \
-  --dns ${DOCKER_DNS} \
-  ${DOCKER_IMAGE}
-`
+DOCKER_ID=$(
+  docker run -id \
+    --add-host github.global.ssl.fastly.net:151.101.1.194 \
+    --add-host gist.github.com:13.250.177.223 \
+    --add-host github.com:13.250.177.223 \
+    --add-host www.github.com:13.229.188.59 \
+    --add-host raw.githubusercontent.com:151.101.56.133 \
+    --dns ${DOCKER_DNS} \
+    ${DOCKER_IMAGE}
+)
 echo --启动容器：${DOCKER_ID}
 
-CODE_HOME=/home/code
+CODE_HOME=/root/codes
 echo --复制脚本：...:${CODE_HOME}
 # 复制脚本及其他
 docker cp ${WORK_FOLDER}/compile_order.txt ${DOCKER_ID}:${CODE_HOME}
@@ -45,9 +44,8 @@ docker cp ${WORK_FOLDER}/compiles.sh ${DOCKER_ID}:${CODE_HOME}
 docker cp ${WORK_FOLDER}/deploy_wars.sh ${DOCKER_ID}:${CODE_HOME}
 docker cp ${WORK_FOLDER}/copy_wars.sh ${DOCKER_ID}:${CODE_HOME}
 # 复制maven仓库缓存
-if [ -e ${WORK_FOLDER}/maven/.m2 ]
-then
-    docker cp ${WORK_FOLDER}/maven/.m2 ${DOCKER_ID}:/root/.m2
+if [ -e ${WORK_FOLDER}/maven/.m2 ]; then
+  docker cp ${WORK_FOLDER}/maven/.m2 ${DOCKER_ID}:/root/.m2
 fi
 
 echo --开始运行脚本
@@ -59,9 +57,8 @@ docker exec -it ${DOCKER_ID} ${CODE_HOME}/compiles.sh
 # 整理包
 docker exec -it ${DOCKER_ID} ${CODE_HOME}/copy_wars.sh ${CODE_HOME}
 # 拷贝结果
-if [ -e ${WORK_FOLDER}/ibas_packages ]
-then
-    rm -rf ${WORK_FOLDER}/ibas_packages
+if [ -e ${WORK_FOLDER}/ibas_packages ]; then
+  rm -rf ${WORK_FOLDER}/ibas_packages
 fi
 docker cp ${DOCKER_ID}:${CODE_HOME}/ibas_packages ${WORK_FOLDER}/ibas_packages
 # 清理资源
@@ -70,6 +67,3 @@ docker rm -vf ${DOCKER_ID}
 echo --结果位置：${WORK_FOLDER}/ibas_packages
 ls ${WORK_FOLDER}/ibas_packages
 echo --操作完成
-
-
-
