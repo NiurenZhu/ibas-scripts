@@ -129,8 +129,11 @@ docker restart ${CONTAINER_TOMCAT} >/dev/null
 # 更新根网站
 CONTAINER_NGINX=ibas-nginx-root
 NGINX_CONFD=${WORK_FOLDER}/root/conf.d
+NGINX_CERT=${WORK_FOLDER}/root/cert
 NGINX_NAME=$(hostname)
-NGINX_PORT=
+NGINX_PORT_HTTP=
+NGINX_PORT_HTTPS=
+
 echo --网站根节点：${CONTAINER_NGINX}
 read -p "----更新根节点？（n or [y]）: " UPDATE_ROOT
 if [ "${UPDATE_ROOT}" = "" ]; then
@@ -140,17 +143,47 @@ if [ "${UPDATE_ROOT}" = "n" ]; then
     exit 0
 fi
 # 获取端口号
-read -p "----根节点端口（80）: " NGINX_PORT
-if [ "${NGINX_PORT}" = "" ]; then
-    NGINX_PORT=80
+read -p "----根节点http端口（80）: " NGINX_PORT_HTTP
+if [ "${NGINX_PORT_HTTP}" = "" ]; then
+    NGINX_PORT_HTTP=80
+fi
+read -p "----根节点https端口（443）: " NGINX_PORT_HTTPS
+if [ "${NGINX_PORT_HTTPS}" = "" ]; then
+    NGINX_PORT_HTTPS=443
 fi
 # 检查数据目录
+mkdir -p ${NGINX_CERT}
 mkdir -p ${NGINX_CONFD}
 if [ ! -e ${NGINX_CONFD}/default.conf ]; then
     cat >${NGINX_CONFD}/default.conf <<EOF
 server {
-    listen       ${NGINX_PORT};
+    listen       ${NGINX_PORT_HTTP};
     server_name  localhost ${NGINX_NAME};
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # 加载其他路径配置
+    include /etc/nginx/conf.d/*.location;
+}
+
+server {
+    listen ${NGINX_PORT_HTTPS};
+    server_name ${NGINX_NAME};
+    ssl on;
+    ssl_certificate   /etc/nginx/cert/1_${NGINX_NAME}_bundle.crt;
+    ssl_certificate_key  /etc/nginx/cert/2_${NGINX_NAME}.key;
+    ssl_session_timeout 5m;
+    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE:ECDH:AES:HIGH:!NULL:!aNULL:!MD5:!ADH:!RC4;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_prefer_server_ciphers on;
 
     location / {
         root   /usr/share/nginx/html;
@@ -265,11 +298,14 @@ EOF
 docker rm -vf ${CONTAINER_NGINX} >/dev/null
 docker run -d \
     --name ${CONTAINER_NGINX} \
-    -p ${NGINX_PORT}:80 \
+    -p ${NGINX_PORT_HTTP}:80 \
+    -p ${NGINX_PORT_HTTPS}:443 \
     -m 64m \
     -v ${NGINX_CONFD}:/etc/nginx/conf.d/ \
+    -v ${NGINX_CERT}:/etc/nginx/cert/ \
     -v ${WORK_FOLDER}/root/index.html:/usr/share/nginx/html/index.html \
     ${LINK_TOMCATS} \
     --privileged=true \
     nginx:alpine
-echo --网站地址：http://${NGINX_NAME}:${NGINX_PORT}/${WEBSITE}/
+echo --网站地址：http://${NGINX_NAME}:${NGINX_PORT_HTTP}/${WEBSITE}/
+echo --网站地址：https://${NGINX_NAME}:${NGINX_PORT_HTTPS}/${WEBSITE}/
