@@ -1,0 +1,6 @@
+# ibas-typescript folder
+location / {
+    expires 1s;
+    root   /home/niurenzhu/Codes/ColorCoding/ibas-typescript;
+    index  index.html index.htm;
+}

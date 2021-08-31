@@ -1,14 +1,11 @@
-# Package Files #
-docker/b1/packages
-compiling/maven
+# file
+~*
+*_log_*.txt
+*.tmp
+*.tar
+*.zip
 
-# temp files
-*~
-docker/nginx/html
+# folder
 
 # mac files
 .DS_Store
-
-*.sql
-*.gz
-*.bak

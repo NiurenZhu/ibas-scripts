@@ -1,0 +1,26 @@
+# byd cn (https://myXXXXXX.sapbyd.cn/)
+location /sap/byd/cn/ {
+    client_max_body_size 10m;
+    client_body_buffer_size 128k;
+    proxy_connect_timeout 1800;
+    proxy_send_timeout 1800;
+    proxy_read_timeout 1800;
+    proxy_buffer_size 4k;
+    proxy_buffers 32 4k;
+    proxy_busy_buffers_size 64k;
+
+    resolver 223.5.5.5 223.6.6.6;
+    if ($request_method = 'OPTIONS') {
+        add_header Access-Control-Allow-Origin $http_origin;
+        add_header Access-Control-Allow-Credentials true;
+        add_header Access-Control-Allow-Headers $http_access_control_request_headers;
+        add_header Access-Control-Allow-Headers x-sap-request-xsrf,x-csrf-token,authorization,origin,x-requested-with,access-control-request-headers,content-type,access-control-request-method,accept;
+        add_header Access-Control-Expose-Headers x-sap-request-xsrf,x-csrf-token,authorization,origin,x-requested-with,access-control-request-headers,content-type,access-control-request-method,accept,sap-xsrf;
+        add_header Access-Control-Allow-Methods GET,POST,DELETE,PUT,OPTIONS;
+        return 200;
+    }
+
+    rewrite ^/sap/byd/cn/(my[0-9]+)/(.*)$ /$2 break;
+    proxy_pass  https://$1.sapbyd.cn/$2;
+    proxy_cookie_path /sap/ap/ui/login /;
+}
