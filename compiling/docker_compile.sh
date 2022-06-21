@@ -17,18 +17,13 @@ if [ "${DOCKER_IMAGE}" = "" ]; then
   DOCKER_IMAGE=colorcoding/compiling:ibas-alpine
 fi
 # 容器镜像
-DOCKER_DNS=8.8.8.8
+DOCKER_DNS=4.2.2.1
 
 echo --工作目录：${WORK_FOLDER}
 echo --使用镜像：${DOCKER_IMAGE}
 # 启动容器
 DOCKER_ID=$(
   docker run -id \
-    --add-host github.global.ssl.fastly.net:151.101.1.194 \
-    --add-host gist.github.com:13.250.177.223 \
-    --add-host github.com:13.250.177.223 \
-    --add-host www.github.com:13.229.188.59 \
-    --add-host raw.githubusercontent.com:151.101.56.133 \
     --dns ${DOCKER_DNS} \
     ${DOCKER_IMAGE}
 )
