@@ -1,0 +1,7 @@
+# openui5
+location /openui5/resources/ {
+    alias /Users/Niuren.Zhu/Workspaces/openui5/openui5-runtime-1.144.0/resources/;
+    
+    expires 24h;
+    add_header Cache-Control "public";
+}
