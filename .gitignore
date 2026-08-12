@@ -4,8 +4,11 @@
 *.tmp
 *.tar
 *.zip
+*.sql
 
 # folder
+__pycache__/
+*.py[cod]
 
 # mac files
 .DS_Store
